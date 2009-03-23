@@ -46,9 +46,8 @@ def p4():
     def is_palindrome(n):
         n = str(n)
         return n == n[::-1]
-    products = (x*x for x in range(999, 0, -1) for y in range(999, 0, -1))
-    seq = (p for p in products if is_palindrome(p))
-    return seq.next()
+    products = (x*y for x in range(999, 0, -1) for y in range(999, x, -1))
+    return max(p for p in products if is_palindrome(p))
 
 def p5():
     """What is the smallest number that is evenly divisible by all of the numbers from 1 to 20?"""
