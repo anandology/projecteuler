@@ -4,8 +4,8 @@
     p1/0, p1/1, 
     p2/0, p2/1,
     p3/0, p3/1, is_prime/1,
-    p4/0,
-    p5/0
+    p4/0, p4/1, reverse_number/1,
+    p5/0, p5/1, sieve/1, max_power/2
 ]).
 
 % 1. Find the sum of all the multiples of 3 or 5 below 1000.
@@ -44,15 +44,35 @@ is_prime(X, N) -> is_prime(X+1, N).
     
 % 4. Find the largest palindrome made from the product of two 3-digit numbers.
 
-p4() -> 0.
+p4() -> p4(999).
+p4(Max) -> lists:max([X*Y || X <- lists:seq(1, Max), Y <- lists:seq(X, Max), is_palindrome(X*Y)]).
+
+is_palindrome(N) -> N == reverse_number(N).
+
+reverse_number(N) -> reverse_number(N, 0).
+reverse_number(0, Reverse) -> Reverse;
+reverse_number(N, Reverse) -> reverse_number(N div 10, Reverse*10 + N rem 10).
 
 % 5. What is the smallest number that is evenly divisible by all of the numbers from 1 to 20?
 
-p5() -> 0.
+p5() -> p5(20).
+p5(Max) -> product(lists:map(fun(X) -> max_power(X, Max) end, sieve(Max))).
 
-main(_) -> 
-    io:format("p1\t~w\n", [p1()]),
-    io:format("p2\t~w\n", [p2()]),
-    io:format("p3\t~w\n", [p3()]),
-    io:format("p4\t~w\n", [p4()]),
-    0.
+product(List) -> lists:foldl(fun(X, Product) -> X * Product end, 1, List).
+
+% Maximum X^N such that X^N < Max.
+max_power(X, Max) -> max_power(X, X, Max).
+max_power(X, Power, Max) when Power*X > Max -> Power; 
+max_power(X, Power, Max) -> max_power(X, Power*X, Max).
+
+sieve(N) -> sieve(lists:seq(2, N), []).
+sieve([], Primes) -> Primes;
+sieve([X|Numbers], Primes) -> sieve([N || N <- Numbers, N rem X /= 0], [X|Primes]).
+
+run(Name) ->
+    {Time, Answer} = timer:tc(euler, Name, []),
+    io:format("~w\t~w\t~g~n", [Name, Answer, Time/1000000.0]).
+
+main(_) ->
+    lists:foreach(fun(Name)-> run(Name) end, [p1, p2, p3, p4, p5]).
+
