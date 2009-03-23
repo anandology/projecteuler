@@ -5,7 +5,9 @@
     p2/0, p2/1,
     p3/0, p3/1, is_prime/1,
     p4/0, p4/1, reverse_number/1,
-    p5/0, p5/1, sieve/1, max_power/2
+    p5/0, p5/1, sieve/1, max_power/2,
+    p6/0, p6/1,
+    p7/0, p7/1
 ]).
 
 % 1. Find the sum of all the multiples of 3 or 5 below 1000.
@@ -69,10 +71,30 @@ sieve(N) -> sieve(lists:seq(2, N), []).
 sieve([], Primes) -> Primes;
 sieve([X|Numbers], Primes) -> sieve([N || N <- Numbers, N rem X /= 0], [X|Primes]).
 
+% 6. Find the difference between the sum of the squares of the first one hundred natural numbers and the square of the sum.
+p6() -> p6(100).
+p6(N) -> 
+    Numbers = lists:seq(1, N), 
+    SquareSum = lists:sum([X*X || X <- Numbers]), 
+    Sum = lists:sum(Numbers),
+    Sum*Sum - SquareSum.
+
+% 7. What is the 10001st prime number?
+p7() -> p7(10001).
+p7(N) -> p7(N, 1, []).
+p7(N, Current, Primes) -> 
+    Numbers = [X || X <- lists:seq(Current+1, 2*Current), lists:all(fun(P) -> (X rem P) /= 0 end, lists:reverse(Primes))],
+    Primes2 = sieve(Numbers, Primes),
+    Test = (length(Primes2) > N),
+    if
+        Test -> lists:nth(length(Primes2)-N+1, Primes2);
+        true -> p7(N, 2*Current, Primes2)
+    end.
+
 run(Name) ->
     {Time, Answer} = timer:tc(euler, Name, []),
     io:format("~w\t~w\t~g~n", [Name, Answer, Time/1000000.0]).
 
 main(_) ->
-    lists:foreach(fun(Name)-> run(Name) end, [p1, p2, p3, p4, p5]).
+    lists:foreach(fun(Name)-> run(Name) end, [p1, p2, p3, p4, p5, p6, p7]).
 
