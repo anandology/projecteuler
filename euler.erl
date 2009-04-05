@@ -1,6 +1,6 @@
 -module(euler).
 -export([
-    main/1,
+    main/1, start/0,
     p1/0, p1/1, 
     p2/0, p2/1,
     p3/0, p3/1, is_prime/1,
@@ -11,10 +11,10 @@
     p8/0,
     p9/0, p9/1,
     p10/0, p10/1,
-    p11/0, 
+    p11/0, adjacent_product/3,
     p12/0, p12/1, divisors/1,
-    p13/0,
-    p14/0, p14/1, maxValueIndex/1, collatzNumbers/1, collatzNumber/1
+    p13/0, rzip/1, largesum/1,
+    p14/0, p14/1, list_index/2, maxValueIndex/1, collatzNumbers/1, collatzNumber/1
 ]).
 
 % 1. Find the sum of all the multiples of 3 or 5 below 1000.
@@ -100,14 +100,11 @@ p7(N, Current, Primes) ->
 
 % 8. Find the greatest product of five consecutive digits in the 1000-digit number. (number stored in data/p008.txt)
 
-max(X, Y) when X > Y -> X;
-max(_, Y) -> Y.
-
 p8() -> p8("data/p008.txt").
 p8(Filename) -> 
     {ok, Data} = file:read_file(Filename),
     p8([C-$0 || C <- binary_to_list(Data), C /= $\n], 0).
-p8([C1, C2, C3, C4, C5|Rest], ProductSoFar) -> p8([C2, C3, C4, C5|Rest], max(ProductSoFar, C1*C2*C3*C4*C5));
+p8([C1, C2, C3, C4, C5|Rest], ProductSoFar) -> p8([C2, C3, C4, C5|Rest], lists:max([ProductSoFar, C1*C2*C3*C4*C5]));
 p8(_, ProductSoFar) -> ProductSoFar.
 
 % 9. There exists exactly one Pythagorean triplet for which a + b + c = 1000. Find the product abc.
@@ -124,7 +121,31 @@ p10(N) -> lists:sum(sieve(N)).
 % 11. What is the greatest product of four adjacent numbers in any direction 
 %     (up, down, left, right, or diagonally) in the 20x20 grid? (see data/p011.txt)
 
-p11() -> 0.
+p11() -> p11("data/p011.txt", 20, 4).
+p11(Filename, Size, Ndigits) -> 
+    {ok, Data} = file:read_file(Filename),
+    Text = binary_to_list(Data),
+    Tokens = string:tokens(Text, " \n"),
+    Numbers = lists:map(fun([D1, D2]) -> (D1-$0) * 10 + D2-$0 end, Tokens),
+    lists:max([
+        lists:max(adjacent_product(Numbers, 1, Ndigits)), 
+        lists:max(adjacent_product(Numbers, Size, Ndigits)),
+        lists:max(adjacent_product(Numbers, Size-1, Ndigits)),
+        lists:max(adjacent_product(Numbers, Size+1, Ndigits))]).
+
+zip_product(_, []) -> [];
+zip_product([], _) -> [];
+zip_product([X|XList], [Y|YList]) -> [X*Y|zip_product(XList, YList)].
+
+list_skip(List, 0) -> List;
+list_skip([_|List], N) -> list_skip(List, N-1).
+
+% Returns [.., X_i + X_i+D + X_i+2*D + ... X_i+(N-1)*D, ...]
+adjacent_product(List, Distance, N) -> adjacent_product(List, Distance, N-1, List).
+adjacent_product(_, _, 0, Result) -> Result;
+adjacent_product(List, Distance, N, Result) -> 
+    NextList = list_skip(List, Distance),
+    adjacent_product(NextList, Distance, N-1, zip_product(Result, NextList)).
 
 % 12. What is the value of the first triangle number to have over five hundred divisors?
 
@@ -151,8 +172,33 @@ p12(Index, TriangularNumber, Count) ->
 
 % 13. Work out the first ten digits of the sum of the following one-hundred 50-digit numbers.
 
-p13() -> 0.
+p13() -> p13("data/p013.txt").
+p13(Filename) ->
+    {ok, Data} = file:read_file(Filename),
+    Text = binary_to_list(Data),
+    Numbers = lists:map(fun string_to_digits/1, string:tokens(Text, "\n")),
+    Sum = largesum(Numbers),
+    string:sub_string(Sum, 1, 10).
 
+string_to_digits(N) -> [X - $0 || X <- N].
+
+% zips all lists but each result list will be in reverse order.
+rzip(Lists) -> rzip(Lists, []).
+rzip([[]|_], Result) -> Result;
+rzip(Lists, Result) ->
+    rzip([T || [_|T] <- Lists], [[H || [H|_] <- Lists]|Result]).
+
+largesum(Numbers) ->
+    % convert Numbers into List of digits in each position, Least Significant first.
+    Digitwise = rzip(Numbers),
+    largesum(Digitwise, 0, []).
+
+largesum([], 0, Result) -> Result;
+largesum([], Carry, Result) -> largesum([], Carry div 10, [Carry rem 10|Result]);
+largesum([Digits|Digitwise], Carry, Result) ->
+    Sum = lists:sum([Carry|Digits]),
+    largesum(Digitwise, Sum div 10, [Sum rem 10|Result]).
+    
 % 14. The following iterative sequence is defined for the set of positive integers:
 %       n = n/2 (n is even)
 %       n = 3n + 1 (n is odd)
@@ -196,7 +242,9 @@ run(Name) ->
     {Time, Answer} = timer:tc(euler, Name, []),
     io:format("~w\t~w\t~g~n", [Name, Answer, Time/1000000.0]).
 
-main(_) ->
+main(_) -> start().
+
+start() ->
     %lists:foreach(fun(Name)-> run(Name) end, [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13]).
-    lists:foreach(fun(Name)-> run(Name) end, [p14]).
+    lists:foreach(fun(Name)-> run(Name) end, [p11]).
 
